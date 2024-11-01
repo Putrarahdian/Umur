@@ -6,12 +6,16 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+
 /**
  *
  * @author rahdi
  */
 public class PenghitungUmurFrame extends javax.swing.JFrame {
 private PenghitungUmurHelper helper;
+private volatile boolean stopFetching = false;
+private Thread peristiwaThread;
+
     /**
      * Creates new form PenghitungUmurFrame
      */
@@ -40,6 +44,9 @@ private PenghitungUmurHelper helper;
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        PrabowoWIN = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -120,17 +127,28 @@ private PenghitungUmurHelper helper;
         gridBagConstraints.insets = new java.awt.Insets(12, 21, 12, 21);
         jPanel1.add(jLabel3, gridBagConstraints);
 
+        jPanel2.setLayout(new java.awt.GridLayout());
+
+        PrabowoWIN.setColumns(20);
+        PrabowoWIN.setRows(5);
+        jScrollPane1.setViewportView(PrabowoWIN);
+
+        jPanel2.add(jScrollPane1);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 677, Short.MAX_VALUE)
+            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 274, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 130, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, 192, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         pack();
@@ -156,6 +174,29 @@ helper.getDayOfWeekInIndonesian(ulangTahunBerikutnya);
 ulangTahunBerikutnya.format(formatter);
  Widodo.setText(hariUlangTahunBerikutnya + "("+tanggalUlangTahunBerikutnya+")");
  }
+ stopFetching = true;
+if (peristiwaThread != null && peristiwaThread.isAlive()) {
+ peristiwaThread.interrupt(); // Beri sinyal ke thread untuk berhenti
+}
+// Reset flag untuk thread baru
+stopFetching = false;
+// Mendapatkan peristiwa penting secara asinkron
+peristiwaThread = new Thread(() -> {
+ try {
+ PrabowoWIN.setText("Tunggu, sedang mengambil data...\n");
+ helper.getPeristiwaBarisPerBaris(ulangTahunBerikutnya, PrabowoWIN,() -> stopFetching);
+ if (!stopFetching) {
+ javax.swing.SwingUtilities.invokeLater(() ->
+PrabowoWIN.append("Selesai mengambil data peristiwa"));
+ }
+ } catch (Exception e) {
+ if (Thread.currentThread().isInterrupted()) {
+ javax.swing.SwingUtilities.invokeLater(() ->
+PrabowoWIN.setText("Pengambilan data dibatalkan.\n"));
+ }
+ }
+});
+peristiwaThread.start();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -165,6 +206,12 @@ ulangTahunBerikutnya.format(formatter);
     private void jDateChooser1PropertyChange(java.beans.PropertyChangeEvent evt) {//GEN-FIRST:event_jDateChooser1PropertyChange
     Joko.setText("");
     Widodo.setText("");
+    stopFetching = true;
+if (peristiwaThread != null && peristiwaThread.isAlive()) {
+ peristiwaThread.interrupt();
+}
+PrabowoWIN.setText("");
+
     }//GEN-LAST:event_jDateChooser1PropertyChange
 
     /**
@@ -204,6 +251,7 @@ ulangTahunBerikutnya.format(formatter);
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField Joko;
+    private javax.swing.JTextArea PrabowoWIN;
     private javax.swing.JTextField Widodo;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
@@ -212,5 +260,7 @@ ulangTahunBerikutnya.format(formatter);
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
 }
